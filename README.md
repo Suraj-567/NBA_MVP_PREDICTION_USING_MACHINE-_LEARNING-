@@ -5,6 +5,7 @@ The goal of this phase is to collect, parse, and clean player, team, and MVP vot
  for the seasons 1991–2025.
 
 ##⚙️ Phase 1 — Web Scraping
+
 ###🧩 1. Scraping MVP Voting Data
 
 **Context:**
@@ -135,7 +136,7 @@ for year in range(1991, 2026):
     print(f"✅ Saved team standings for {year}")
     time.sleep(3)
 
-####🧩 6. Extracting Team Standings
+###🧩 6. Extracting Team Standings
 
 **Context:**
 This script extracts both Eastern and Western Conference standings from all saved team pages and combines them into one dataset (teams.csv).
@@ -236,7 +237,7 @@ teams["Team"] = teams["Team"].str.replace("*", "", regex=False)
 teams.to_csv("teams_cleaned.csv", index=False)
 print("✅ Cleaned team data saved as teams_cleaned.csv")
 
-####🧩 Final Combined Dataset
+###🧩 Final Combined Dataset
 
 **Context:**
 Finally, all three datasets (Players, MVPs, and Teams) are merged on common keys (Player, Year, Team) to form a unified dataset for analysis.
