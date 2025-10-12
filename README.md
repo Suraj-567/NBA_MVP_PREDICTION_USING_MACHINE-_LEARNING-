@@ -2,7 +2,7 @@
 📘 Project Overview
 
 This repository focuses on data collection and cleaning for the NBA MVP Prediction project.
-The data is scraped directly from Basketball Reference
+The data is scraped from Basketball Reference
  for the seasons 1991–2025, covering:
 
 MVP voting results
@@ -33,7 +33,6 @@ This script fetches the MVP voting tables for every season between 1991 and 2025
 Each page is saved as an HTML file inside the mvp/ folder for later parsing.
 
 💻 Code
-# ---------- MVP Scraping Script ----------
 import requests
 import os
 import time
@@ -58,7 +57,6 @@ This script parses all the scraped HTML files, extracts MVP tables, and combines
 It uses BeautifulSoup and Pandas for parsing and tabular data handling.
 
 💻 Code
-# ---------- MVP Extraction Script ----------
 import pandas as pd
 from bs4 import BeautifulSoup
 from io import StringIO
@@ -90,7 +88,6 @@ This Selenium script automatically opens each year’s NBA per-game statistics p
 Light mode is enforced for consistent formatting across seasons.
 
 💻 Code
-# ---------- Player Scraping Script ----------
 from selenium import webdriver
 import os, time, random
 
@@ -116,7 +113,6 @@ driver.quit()
 This script reads all the saved player per-game HTML files, cleans up redundant headers, and merges them into a single CSV file (players.csv).
 
 💻 Code
-# ---------- Player Extraction Script ----------
 import pandas as pd
 from bs4 import BeautifulSoup
 from io import StringIO
@@ -148,7 +144,6 @@ print("✅ Player Data Extracted and Saved to players.csv")
 This script collects division standings for each NBA season (1991–2025), saving them under /team/.
 
 💻 Code
-# ---------- Team Scraping Script ----------
 import requests
 import os
 import time
@@ -172,7 +167,6 @@ for year in range(1991, 2026):
 This script parses both Eastern and Western Conference standings and saves the cleaned data into teams.csv.
 
 💻 Code
-# ---------- Team Extraction Script ----------
 import pandas as pd
 from bs4 import BeautifulSoup
 from io import StringIO
@@ -210,7 +204,6 @@ Players often appear multiple times per year (if traded).
 We clean such duplicates, remove unnecessary columns, and standardize player names.
 
 💻 Code
-# ---------- Player Data Cleaning ----------
 import pandas as pd
 
 players = pd.read_csv("players.csv")
@@ -233,7 +226,8 @@ print("✅ Cleaned player data saved as players_cleaned.csv")
 We focus on only the relevant MVP columns and ensure all missing values are filled for consistency.
 
 💻 Code
-# ---------- MVP Data Cleaning ----------
+import pandas as pd
+
 mvps = pd.read_csv("mvps.csv")
 
 # Keep only important columns
@@ -251,7 +245,8 @@ print("✅ Cleaned MVP data saved as mvps_cleaned.csv")
 Cleans and standardizes team standings data, removes unwanted characters, and ensures consistent column naming.
 
 💻 Code
-# ---------- Team Data Cleaning ----------
+import pandas as pd
+
 teams = pd.read_csv("teams.csv")
 
 # Remove unwanted rows
@@ -269,7 +264,8 @@ print("✅ Cleaned team data saved as teams_cleaned.csv")
 Finally, we merge all three cleaned datasets — players, MVPs, and teams — into one combined dataset for later machine learning.
 
 💻 Code
-# ---------- Combine All Cleaned Data ----------
+import pandas as pd
+
 players = pd.read_csv("players_cleaned.csv")
 mvps = pd.read_csv("mvps_cleaned.csv")
 teams = pd.read_csv("teams_cleaned.csv")
@@ -282,14 +278,3 @@ combined = combined.merge(teams, how="left", on=["Team", "Year"])
 
 combined.to_csv("combined_data.csv", index=False)
 print("✅ Final combined dataset saved as combined_data.csv")
-
-📂 Output Summary
-File Name	Description
-mvp/*.html	Raw MVP voting HTML files
-players/*.html	Raw player per-game HTML files
-team/*.html	Raw team standings HTML files
-mvps.csv	Extracted MVP dataset
-players.csv	Extracted player dataset
-teams.csv	Extracted team dataset
-*_cleaned.csv	Cleaned and standardized data
-combined_data.csv	Final merged dataset for ML
