@@ -1,280 +1,270 @@
-🏀 NBA MVP Dataset — Web Scraping & Data Cleaning
-📘 Project Overview
+# 🏀 NBA MVP Prediction — Data Scraping & Cleaning
 
-This repository focuses on data collection and cleaning for the NBA MVP Prediction project.
-The data is scraped from Basketball Reference
- for the seasons 1991–2025, covering:
+This repository contains the **data scraping** and **cleaning** pipeline for the NBA MVP Prediction project.  
+The goal of this phase is to collect, parse, and clean player, team, and MVP voting data from [Basketball Reference](https://www.basketball-reference.com/) for the seasons **1991–2025**.
 
-MVP voting results
+---
 
-Player per-game statistics
+## ⚙️ Phase 1 — Web Scraping
 
-Team standings
+### 🧩 1. Scraping MVP Voting Data
 
-After scraping, all datasets are cleaned, standardized, and merged to prepare for later machine learning analysis.
+**Context:**  
+This script scrapes MVP voting tables for every year from 1991 to 2025 and saves each page as an HTML file in the `mvp/` folder.
 
-🕸️ Phase 1 — Web Scraping
-🎯 Objective
-
-To collect raw data for:
-
-MVP Voting Results
-
-Player Per-Game Stats
-
-Team Standings
-
-All data is saved locally in structured folders (/mvp, /players, /team).
-
-🧩 1. Scraping MVP Voting Data
-📝 Context
-
-This script fetches the MVP voting tables for every season between 1991 and 2025 from Basketball Reference’s awards pages.
-Each page is saved as an HTML file inside the mvp/ folder for later parsing.
-
-💻 Code
+**Code:**
+```python
 import requests
-import os
 import time
 
-os.makedirs("mvp", exist_ok=True)
+base_url = "https://www.basketball-reference.com/awards/awards_{year}.html"
 
 for year in range(1991, 2026):
-    url = f"https://www.basketball-reference.com/awards/awards_{year}.html"
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(f"mvp/{year}.html", "w", encoding="utf-8") as f:
-            f.write(response.text)
-        print(f"✅ Saved {year}.html")
-    else:
-        print(f"❌ Failed for {year}")
+    print(f"Fetching data for the year {year}...")
+    url = base_url.format(year=year)
+    html = requests.get(url).text
+    with open(f"mvp/{year}.html", "w+", encoding="utf-8") as f:
+        f.write(html)
+    print(f"✅ Successfully saved {year}.html")
     time.sleep(3)
+🧩 2. Extracting MVP Voting Data
+Context:
+Once HTML files are saved, this script parses all the mvp/ pages and extracts the MVP tables into a single CSV file named mvps.csv.
 
-🧩 2. Extracting MVP Data from HTML
-📝 Context
+Code:
 
-This script parses all the scraped HTML files, extracts MVP tables, and combines them into a single CSV (mvps.csv).
-It uses BeautifulSoup and Pandas for parsing and tabular data handling.
-
-💻 Code
-import pandas as pd
+python
+Copy code
 from bs4 import BeautifulSoup
+import pandas as pd
 from io import StringIO
 from pathlib import Path
 
-mvp_folder = Path("mvp")
-mvp_data = []
+files = sorted(Path("mvp").glob("*.html"))
+dfs = []
 
-for file in mvp_folder.glob("*.html"):
-    year = int(file.stem)
-    with open(file, "r", encoding="utf-8") as f:
-        html = f.read()
+for file in files:
+    with open(file, encoding="utf-8") as f:
+        page = f.read()
+    soup = BeautifulSoup(page, "html.parser")
+    table = soup.find(name="table")
+    df = pd.read_html(StringIO(str(table)))[0]
+    df["Year"] = file.stem
+    dfs.append(df)
 
-    soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table")
-    if table:
-        df = pd.read_html(StringIO(str(table)))[0]
-        df["Year"] = year
-        mvp_data.append(df)
-
-mvps = pd.concat(mvp_data, ignore_index=True)
+mvps = pd.concat(dfs)
 mvps.to_csv("mvps.csv", index=False)
-print("✅ MVP Data Extracted and Saved to mvps.csv")
+print("✅ Saved all MVP data to mvps.csv")
+🧩 3. Scraping Player Statistics (Per Game)
+Context:
+This script uses Selenium to scrape player per-game stats for all seasons (1991–2025).
+Each year’s page is stored as an HTML file in the player/ folder.
 
-🧩 3. Scraping Player Per-Game Stats
-📝 Context
+Code:
 
-This Selenium script automatically opens each year’s NBA per-game statistics page and saves it as an HTML file.
-Light mode is enforced for consistent formatting across seasons.
-
-💻 Code
+python
+Copy code
 from selenium import webdriver
-import os, time, random
+import time, random
+from pathlib import Path
 
-os.makedirs("players", exist_ok=True)
+Path("player").mkdir(exist_ok=True)
 
 driver = webdriver.Chrome()
 
 for year in range(1991, 2026):
     url = f"https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html"
+    print(f"Fetching data for {year}...")
     driver.get(url)
-    driver.execute_script("document.querySelector('body').classList.remove('dark-mode');")
-    time.sleep(random.uniform(2.5, 4.5))
-
-    with open(f"players/{year}.html", "w", encoding="utf-8") as f:
-        f.write(driver.page_source)
+    time.sleep(random.uniform(3, 5))  # polite scraping delay
+    html = driver.page_source
+    with open(f"player/{year}.html", "w+", encoding="utf-8") as f:
+        f.write(html)
     print(f"✅ Saved player stats for {year}")
-
+    
 driver.quit()
+🧩 4. Extracting Player Statistics
+Context:
+This script parses all the player/ HTML files and extracts clean per-game statistics for each season.
+The final dataset is saved as players.csv.
 
-🧩 4. Extracting Player Stats from HTML
-📝 Context
+Code:
 
-This script reads all the saved player per-game HTML files, cleans up redundant headers, and merges them into a single CSV file (players.csv).
-
-💻 Code
-import pandas as pd
+python
+Copy code
 from bs4 import BeautifulSoup
+import pandas as pd
 from io import StringIO
 from pathlib import Path
 
-player_folder = Path("players")
+files = sorted(Path("player").glob("*.html"))
 all_players = []
 
-for file in player_folder.glob("*.html"):
-    year = int(file.stem)
-    with open(file, "r", encoding="utf-8") as f:
-        html = f.read()
-
-    soup = BeautifulSoup(html, "html.parser")
+for file in files:
+    with open(file, encoding="utf-8") as f:
+        page = f.read()
+    soup = BeautifulSoup(page, "html.parser")
     table = soup.find("table", {"id": "per_game_stats"})
-    if table:
-        df = pd.read_html(StringIO(str(table)))[0]
-        df = df[df["Rk"] != "Rk"]  # remove header repeats
-        df["Year"] = year
-        all_players.append(df)
+    df = pd.read_html(StringIO(str(table)))[0]
+    df = df[df["Rk"] != "Rk"]  # remove header duplicates
+    df["Year"] = file.stem
+    all_players.append(df)
 
-players = pd.concat(all_players, ignore_index=True)
+players = pd.concat(all_players)
 players.to_csv("players.csv", index=False)
-print("✅ Player Data Extracted and Saved to players.csv")
-
+print("✅ Saved all player stats to players.csv")
 🧩 5. Scraping Team Standings
-📝 Context
+Context:
+This script scrapes NBA team standings (Eastern and Western Conferences) for each year from 1991 to 2025 and saves them to the team/ folder.
 
-This script collects division standings for each NBA season (1991–2025), saving them under /team/.
+Code:
 
-💻 Code
+python
+Copy code
 import requests
 import os
 import time
 
 os.makedirs("team", exist_ok=True)
+base_url = "https://www.basketball-reference.com/leagues/NBA_{year}_standings.html"
 
 for year in range(1991, 2026):
-    url = f"https://www.basketball-reference.com/leagues/NBA_{year}_standings.html"
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(f"team/{year}.html", "w", encoding="utf-8") as f:
-            f.write(response.text)
-        print(f"✅ Saved team standings for {year}")
-    else:
-        print(f"❌ Failed for {year}")
+    print(f"Fetching standings for {year}...")
+    url = base_url.format(year=year)
+    html = requests.get(url).text
+    with open(f"team/{year}.html", "w+", encoding="utf-8") as f:
+        f.write(html)
+    print(f"✅ Saved team standings for {year}")
     time.sleep(3)
+🧩 6. Extracting Team Standings
+Context:
+This script extracts both Eastern and Western Conference standings from all saved team pages and combines them into one dataset (teams.csv).
 
-🧩 6. Extracting Team Standings Data
-📝 Context
+Code:
 
-This script parses both Eastern and Western Conference standings and saves the cleaned data into teams.csv.
-
-💻 Code
-import pandas as pd
+python
+Copy code
 from bs4 import BeautifulSoup
+import pandas as pd
 from io import StringIO
 from pathlib import Path
 
-team_folder = Path("team")
-all_teams = []
+files = sorted(Path("team").glob("*.html"))
+dfs = []
 
-for file in team_folder.glob("*.html"):
-    year = int(file.stem)
-    with open(file, "r", encoding="utf-8") as f:
-        html = f.read()
-    soup = BeautifulSoup(html, "html.parser")
+for file in files:
+    with open(file, encoding="utf-8") as f:
+        page = f.read()
+    soup = BeautifulSoup(page, "html.parser")
 
-    for table_id in ["divs_standings_E", "divs_standings_W"]:
-        table = soup.find("table", id=table_id)
-        if table:
-            df = pd.read_html(StringIO(str(table)))[0]
-            df["Year"] = year
-            all_teams.append(df)
+    east = soup.find("table", {"id": "confs_standings_E"})
+    west = soup.find("table", {"id": "confs_standings_W"})
 
-teams = pd.concat(all_teams, ignore_index=True)
+    df_e = pd.read_html(StringIO(str(east)))[0]
+    df_w = pd.read_html(StringIO(str(west)))[0]
+
+    df_e["Conference"] = "East"
+    df_w["Conference"] = "West"
+
+    df = pd.concat([df_e, df_w])
+    df["Year"] = file.stem
+    dfs.append(df)
+
+teams = pd.concat(dfs)
 teams.to_csv("teams.csv", index=False)
-print("✅ Team Standings Extracted and Saved to teams.csv")
-
+print("✅ Saved all team standings to teams.csv")
 🧹 Phase 2 — Data Cleaning
-🎯 Objective
+🔧 Cleaning Player Data
+Context:
+This script cleans and standardizes the player dataset:
 
-To clean, normalize, and merge the scraped MVP, player, and team data into a unified dataset ready for machine learning.
+Removes redundant columns and rows
 
-🧩 1. Player Data Cleaning
-📝 Context
+Strips symbols like * from player names
 
-Players often appear multiple times per year (if traded).
-We clean such duplicates, remove unnecessary columns, and standardize player names.
+Handles players traded mid-season (TOT team case)
 
-💻 Code
+Saves the cleaned dataset as players_cleaned.csv
+
+Code:
+
+python
+Copy code
 import pandas as pd
 
 players = pd.read_csv("players.csv")
+players = players[players["Player"].notna()]
 
-# Drop unwanted columns
-players = players.drop(columns=["Rk"], errors="ignore")
-
-# Remove '*' from player names
+# Clean names and drop unnecessary columns
 players["Player"] = players["Player"].str.replace("*", "", regex=False)
+players.drop(columns=["Rk"], inplace=True, errors="ignore")
 
-# Merge duplicate player-year entries
+# Handle duplicates (due to multiple teams)
 players = players.groupby(["Player", "Year"], as_index=False).mean(numeric_only=True)
 
 players.to_csv("players_cleaned.csv", index=False)
 print("✅ Cleaned player data saved as players_cleaned.csv")
+🔧 Cleaning MVP Data
+Context:
+This step ensures consistency in MVP dataset:
 
-🧩 2. MVP Data Cleaning
-📝 Context
+Keeps only essential columns
 
-We focus on only the relevant MVP columns and ensure all missing values are filled for consistency.
+Fills missing MVP scores for players not in the vote list
 
-💻 Code
-import pandas as pd
+Saves as mvps_cleaned.csv
 
+Code:
+
+python
+Copy code
 mvps = pd.read_csv("mvps.csv")
 
-# Keep only important columns
 mvps = mvps[["Player", "Year", "Pts Won", "Pts Max", "Share"]]
+mvps["Share"] = mvps["Share"].fillna(0)
 
-# Fill missing values
-mvps.fillna(0, inplace=True)
+mvps["Player"] = mvps["Player"].str.replace("*", "", regex=False)
 
 mvps.to_csv("mvps_cleaned.csv", index=False)
 print("✅ Cleaned MVP data saved as mvps_cleaned.csv")
+🔧 Cleaning Team Data
+Context:
+This cleans the team dataset:
 
-🧩 3. Team Data Cleaning
-📝 Context
+Removes division headers
 
-Cleans and standardizes team standings data, removes unwanted characters, and ensures consistent column naming.
+Standardizes names
 
-💻 Code
-import pandas as pd
+Converts numeric columns
 
+Saves as teams_cleaned.csv
+
+Code:
+
+python
+Copy code
 teams = pd.read_csv("teams.csv")
 
-# Remove unwanted rows
-teams = teams[~teams["Team"].str.contains("Division", na=False)]
-
-# Remove '*' characters from team names
+teams = teams[teams["Team"] != "Division"]
 teams["Team"] = teams["Team"].str.replace("*", "", regex=False)
 
 teams.to_csv("teams_cleaned.csv", index=False)
 print("✅ Cleaned team data saved as teams_cleaned.csv")
+🧩 Final Combined Dataset
+Context:
+Finally, all three datasets (Players, MVPs, and Teams) are merged on common keys (Player, Year, Team) to form a unified dataset for analysis.
 
-🧩 4. Merging All Cleaned Data
-📝 Context
+Code:
 
-Finally, we merge all three cleaned datasets — players, MVPs, and teams — into one combined dataset for later machine learning.
-
-💻 Code
-import pandas as pd
-
+python
+Copy code
 players = pd.read_csv("players_cleaned.csv")
 mvps = pd.read_csv("mvps_cleaned.csv")
 teams = pd.read_csv("teams_cleaned.csv")
 
-# Merge player + MVP data
 combined = players.merge(mvps, how="left", on=["Player", "Year"])
-
-# Merge with team standings based on team name and year
 combined = combined.merge(teams, how="left", on=["Team", "Year"])
 
+combined.fillna(0, inplace=True)
 combined.to_csv("combined_data.csv", index=False)
-print("✅ Final combined dataset saved as combined_data.csv")
+print("✅ Final merged dataset saved as combined_data.csv")
