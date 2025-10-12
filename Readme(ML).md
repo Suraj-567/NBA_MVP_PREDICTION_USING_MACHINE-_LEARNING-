@@ -224,3 +224,39 @@ Add advanced stats like Win Shares, VORP, BPM.
 Experiment with XGBoost or LightGBM.
 
 Use ranking-based loss functions for MVP prediction.
+
+
+####How to Run
+
+Open Notebook
+
+jupyter notebook Machine\ _learning.ipynb
+
+
+Step-by-Step Execution
+
+Run each cell in order.
+
+Sections are organized as follows:
+
+Data Cleaning
+
+Data Splitting
+
+Preprocessing
+
+Model Training & Evaluation
+
+Model Tuning
+
+Final Evaluation & Top MVP Prediction
+
+Data Output
+
+Cleaned dataset: player_mvp_stats_cleaned.csv
+
+Preprocessed features and labels: X_train_processed.npy, X_test_processed.npy, y_train.npy, y_test.npy
+
+Visualization
+
+Correlation heatmaps and evaluation plots are generated using matplotlib and seaborn.
